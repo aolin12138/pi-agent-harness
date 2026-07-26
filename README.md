@@ -283,7 +283,12 @@ pi install npm:pi-mcp-adapter
 # Edit ~/.pi/agent/settings.json with your API keys and model preferences
 # Edit ~/.pi/user/PROFILE.md with your preferences
 
-# 5. Start
+# 5. Configure personal layer (see PORTABILITY.md for full guide)
+#    - Set API key environment variables
+#    - Authenticate with pi for your LLM providers
+#    - Copy PROFILE.md from old machine or write from scratch
+
+# 6. Start
 pi
 ```
 
@@ -315,7 +320,8 @@ API keys, personal memory.
 
 ```
 pi-agent-harness/
-├── README.md                     # You're reading it
+├── README.md                     # Architecture overview + setup guide
+├── PORTABILITY.md                # Moving between machines: what to copy, what to reconfigure
 ├── setup.ps1 / setup.sh          # One-command install
 ├── .gitignore
 ├── agent/

@@ -42,6 +42,14 @@ else
   echo -e "  ${GREEN}✓${RESET} settings.json already exists (preserved)"
 fi
 
+# Models template (copy if no existing models.json)
+if [ ! -f "$AGENT_DIR/models.json" ]; then
+  cp "$REPO_ROOT/agent/models.template.json" "$AGENT_DIR/models.json"
+  echo -e "  ${YELLOW}⚠${RESET} Created models.json from template — set API key env vars and add providers"
+else
+  echo -e "  ${GREEN}✓${RESET} models.json already exists (preserved)"
+fi
+
 # ── Step 3: Install custom skills ────────────────────────────
 echo -e "${BOLD}[3/6]${RESET} Installing custom skills..."
 SKILL_COUNT=0
@@ -120,7 +128,12 @@ echo "       pi install npm:@eko24ive/pi-ask"
 echo "       pi install npm:@micuintus/llm-wiki"
 echo "       pi install npm:pi-playwright"
 echo "       pi install npm:pi-mcp-adapter"
-echo "  3. Edit ~/.pi/user/PROFILE.md with your preferences"
-echo "  4. Start pi: pi"
+echo "  3. Copy models.template.json to models.json: cp agent/models.template.json ~/.pi/agent/models.json"
+echo "  4. Set API key environment variables (DEEPSEEK_API_KEY, ZHIPU_API_KEY, etc.)"
+echo "  5. Authenticate with pi for your LLM providers (OAuth or API key prompt)"
+echo "  6. Copy PROFILE.md from your old machine, or edit ~/.pi/user/PROFILE.md from scratch"
+echo "  7. Start pi: pi"
+echo ""
+echo "See PORTABILITY.md for the full guide on transferring personal config between machines."
 echo ""
 echo -e "${YELLOW}To update the harness later: git pull && ./setup.sh${RESET}"

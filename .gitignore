@@ -26,6 +26,7 @@ npm/
 .DS_Store
 Thumbs.db
 
-# Allow the template files
+# Allow the template files (committed, no secrets)
 !user/PROFILE.template.md
 !agent/settings.template.json
+!agent/models.template.json
