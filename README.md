@@ -197,7 +197,7 @@ Session work → wiki-maintenance extraction pass →
 
 ## pi-web — Full-Stack Agent UI
 
-A modern web UI built in a single session. [Separate repo →](https://github.com/user/pi-web)
+A modern web UI built in a single session. [Separate repo →](https://github.com/aolin12138/pi-web)
 
 | Metric | Value |
 |--------|-------|
