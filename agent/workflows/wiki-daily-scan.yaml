@@ -1,0 +1,50 @@
+# Daily session scan workflow.
+# Checks for unregistered Pi sessions and flags them for ingestion.
+#
+# Usage: /run-workflow wiki-daily-scan
+
+name: wiki-daily-scan
+description: Scan for unregistered Pi sessions and flag for wiki ingestion
+
+steps:
+  - id: scan
+    task: |
+      Run the session scanner to find unregistered sessions:
+
+      ```
+      python3 C:/Users/User/.pi/bin/scan-unregistered-sessions.py --ingest
+      ```
+
+      Read the output. If unregistered sessions are found:
+      1. List them with project, size, and topic
+      2. Read the task file at ~/.pi/tasks/wiki-ingest-pending.md
+      3. For the largest 3 unregistered sessions, do a quick analysis:
+         - Extract first/last user messages
+         - Count tool usage
+         - Identify what project they belong to
+      4. Propose which ones to ingest first (prioritize recent + large)
+
+      If no unregistered sessions, report "all clear."
+
+  - id: propose
+    task: |
+      Based on the scan results, create a concise proposal for the user:
+
+      ```
+      📋 Wiki Ingestion Proposal — <date>
+
+      <N> sessions unregistered.
+
+      Priority 1 (ingest now):
+      - [project] <session-slug> (<size>MB): <topic>
+
+      Priority 2 (ingest later):
+      - [project] <session-slug> (<size>MB): <topic>
+
+      Skipped (too small/old):
+      - <N> sessions under 50KB or older than 30 days
+
+      Run /wiki:ingest-sessions to process priority 1.
+      ```
+
+      Do NOT auto-ingest — always propose and wait for user approval.

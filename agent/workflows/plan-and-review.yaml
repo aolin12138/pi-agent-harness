@@ -1,0 +1,24 @@
+name: plan-and-review
+description: Plan then review using explicit output references
+inputs:
+  requirement: ""
+nodes:
+  - id: plan
+    type: agent
+    agent: planner
+    task: Create a short plan for the requirement.
+    inputRefs: ["$workflow.inputs.requirement"]
+    dependsOn: []
+    onError: fail
+    retries: 0
+    timeoutMs: 120000
+
+  - id: review-plan
+    type: agent
+    agent: reviewer
+    task: Review the plan and suggest improvements.
+    inputRefs: ["$plan.output"]
+    dependsOn: [plan]
+    onError: continue
+    retries: 0
+    timeoutMs: 120000

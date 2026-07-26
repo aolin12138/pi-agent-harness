@@ -1,0 +1,22 @@
+{
+  "lastChangelogVersion": "0.0.0",
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-opus-4-8",
+  "defaultThinkingLevel": "xhigh",
+  "shellPath": "/bin/bash",
+  "packages": [
+    "npm:pi-web-access",
+    "npm:@eko24ive/pi-ask",
+    "npm:@micuintus/llm-wiki",
+    "npm:pi-playwright",
+    "npm:pi-prompt-autoresearch",
+    {
+      "source": "npm:@plannotator/pi-extension",
+      "skills": []
+    },
+    "git:github.com/edxeth/pi-subagents",
+    "git:github.com/edxeth/pi-tasks",
+    "npm:pi-mcp-adapter"
+  ],
+  "theme": "dark"
+}

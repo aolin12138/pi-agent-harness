@@ -1,0 +1,55 @@
+# Wiki audit workflow — runs every ~4 days or on demand.
+# Spawns a reviewer agent with the wiki-audit skill to check wiki health,
+# review staged git changes, and produce an audit report.
+#
+# Usage: /run-workflow wiki-audit
+
+name: wiki-audit
+description: Audit wiki health and review staged changes before git commit
+
+steps:
+  - id: audit-project-wiki
+    agent: reviewer
+    task: |
+      Audit the project wiki at C:/Users/User/.pi/llm-wiki/.
+
+      Load the wiki-audit skill first. Then:
+
+      1. cd to C:/Users/User/.pi/llm-wiki/ and run `git status`
+      2. Read SCHEMA.md, index.md, log.md
+      3. Run the full audit checklist:
+         A. Git review — all staged files have log entries, index updated
+         B. Link integrity — every link resolves, anchors match
+         C. Structural health — stubs, orphans, contradictions, attributions
+         D. Content quality — sample 3 pages, check depth and citations
+      4. Produce an audit report with BLOCKER/WARNING/INFO counts
+      5. If APPROVED, stage a git commit message
+
+      Output the full audit report.
+
+  - id: audit-core-memory
+    agent: reviewer
+    task: |
+      Audit the core memory wiki at C:/Users/User/.pi/agent/llm-wiki/.
+
+      Load the wiki-audit skill first. Then:
+
+      1. cd to C:/Users/User/.pi/agent/llm-wiki/ and run `git status`
+      2. Read SCHEMA.md, index.md, log.md
+      3. Run the full audit checklist
+      4. Produce audit report with BLOCKER/WARNING/INFO counts
+      5. If APPROVED, stage a git commit message
+
+      Output the full audit report.
+
+  - id: summarize
+    task: |
+      Combine the two audit reports into one summary.
+
+      For each wiki:
+      - Verdict: APPROVED / CONDITIONAL / REJECTED
+      - N blockers, N warnings, N info
+      - Top 3 actionable items
+
+      If both APPROVED, confirm commits can proceed.
+      If any CONDITIONAL, list what must be fixed.

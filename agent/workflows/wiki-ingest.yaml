@@ -1,0 +1,195 @@
+# Wiki ingestion workflow.
+# Consistent pipeline: validate → extract → dedupe → compile → index → log → audit.
+# Idempotent — safe to run multiple times on same sessions.
+# Triggered by wiki-daily-scan or manually.
+#
+# Usage: /run-workflow wiki-ingest [--sessions <file1.jsonl,file2.jsonl>] [--auto]
+
+name: wiki-ingest
+description: >
+  Full ingestion pipeline for Pi session files into the LLM wiki.
+  Validate → extract → dedupe → compile → index → log → audit.
+  Idempotent, with review gates for uncertain content.
+inputs:
+  sessions: ""      # comma-separated session file paths (optional, reads from tasks/wiki-ingest-pending.md if empty)
+  autoMode: "false" # skip review gates for low-risk sessions
+
+nodes:
+  # ===== PHASE 1: VALIDATE =====
+  - id: validate
+    type: manual
+    task: |
+      ## Validation Gate
+
+      Load the wiki-maintenance skill. Then validate every session file:
+
+      1. **File exists and is readable** — check each session path
+      2. **Not already ingested** — check `~/.pi/llm-wiki/log.md` for prior ingestion of this session
+      3. **Has minimum content** — at least 10 user/assistant messages (skip trivial sessions)
+      4. **Belongs to a known project** — identify from session cwd/slugs
+
+      Output: a table of sessions with status (VALID / SKIP / NEEDS REVIEW).
+      Sessions marked SKIP get a reason (already ingested, too small, unknown project).
+      Sessions marked NEEDS REVIEW are large (>5MB) or have unusual patterns — flag for human.
+
+      **Quality rule:** if any validated session is >30 days old, flag it — stale content needs
+      extra scrutiny during extraction.
+
+      Do NOT proceed to extraction until validation passes for at least one session.
+
+  # ===== PHASE 2: EXTRACT =====
+  - id: extract
+    type: manual
+    task: |
+      ## Extraction Phase
+
+      For each validated session, extract structured evidence:
+
+      1. **Session metadata** — date, duration, model used, project, user message count
+      2. **Key events** — what was built/changed/decided (not every tool call, just significant ones)
+      3. **Decisions and rationale** — design choices with alternatives considered
+      4. **Artifacts produced** — files created, edited, or deleted
+      5. **Patterns observed** — success patterns, failure patterns, anti-patterns
+      6. **Open questions** — unresolved issues, TODOs, deferred decisions
+
+      **Quality rules:**
+      - Every claim must be traceable to session evidence (tool call, message, file path)
+      - Distinguish facts ("wrote file X at line Y") from inferences ("this suggests pattern Z")
+      - Mark uncertain items explicitly: `[NEEDS REVIEW]` prefix
+      - Skip trivial events (reads with no impact, conversational filler)
+      - For large sessions (>3MB): extract top 20% most significant events, note that extraction is partial
+
+      Output for each session: an extraction summary with evidence citations.
+
+      Do NOT write any wiki pages yet.
+
+  # ===== PHASE 3: DEDUPE =====
+  - id: dedupe
+    type: manual
+    task: |
+      ## Deduplication Phase
+
+      Before writing anything, check for conflicts with existing wiki:
+
+      1. **Read existing wiki pages** in the project's folder (`~/.pi/llm-wiki/projects/<project>/`)
+      2. **Read related built/ pages** if the session touches pi configuration
+      3. **For each extracted finding**, check:
+         - Does this already exist in the wiki? → mark as DUPLICATE, skip
+         - Does this partially overlap? → mark as UPDATE, merge strategy needed
+         - Does this conflict with existing content? → mark as CONFLICT, hold for review
+         - Is this new? → mark as NEW, proceed to compile
+      4. **Cross-reference sources** — if two sessions describe the same event differently,
+         prefer the more recent one but flag the discrepancy
+
+      **Quality rules:**
+      - Never create a new page when an existing page can be updated
+      - When updating, preserve existing content that's still accurate — don't rewrite
+      - Conflicts must be surfaced, not silently overwritten
+      - If unsure whether content overlaps, treat as CONFLICT
+
+      Output: deduplication report showing what's NEW, UPDATE, DUPLICATE, CONFLICT per session.
+
+  # ===== PHASE 4: COMPILE =====
+  - id: compile
+    type: manual
+    task: |
+      ## Compilation Phase
+
+      Write wiki pages following `~/.pi/llm-wiki/SCHEMA.md` conventions:
+
+      1. **For NEW content:**
+         - Create page with correct frontmatter (title, type, updated, sources, tags)
+         - Follow page type conventions (concept, decision, reference, etc.)
+         - Include evidence citations (session path, tool call index, file:line)
+         - Cross-reference related pages
+
+      2. **For UPDATE content:**
+         - Edit existing page, preserving structure and accurate sections
+         - Update `updated` date in frontmatter
+         - Add new source references without removing old ones
+         - Add new content in the appropriate section, not appended at the end
+
+      3. **For CONFLICT content:**
+         - Do NOT overwrite. Instead, add a `## Unresolved` section to the page
+           documenting the conflict with both perspectives cited
+         - Flag for human review in the final report
+
+      **Quality rules:**
+      - Every non-trivial claim must be cited
+      - No duplicate pages — if content spans multiple topics, cross-reference, don't duplicate
+      - Keep pages concise — prefer 200 well-structured lines over 500 rambling ones
+      - Source reliability annotations: `sessions/` = mixed, `codegraph/` = high, `external/` = unverified
+      - Use relative paths for all wiki-internal links
+
+      **What NOT to compile:**
+      - Raw source code (reference file paths, don't embed)
+      - Session transcripts verbatim (reference session path, extract patterns)
+      - Unverified web claims without cross-reference
+      - Trivial facts that will never be referenced again
+
+  # ===== PHASE 5: INDEX =====
+  - id: index
+    type: manual
+    task: |
+      ## Index Update Phase
+
+      Update `~/.pi/llm-wiki/index.md`:
+
+      1. **Add new pages** to the appropriate section (Projects, Built, Context, etc.)
+      2. **Update page summaries** for modified pages if the summary is stale
+      3. **Add cross-references** — if a new page links to another, ensure the link is bidirectional
+      4. **Check for broken links** — every `[text](path.md)` must resolve
+
+      **Quality rules:**
+      - Index entries should be one-line summaries (what the page covers, not its full content)
+      - Keep sections organized — alphabetical within each category
+      - Don't remove existing entries unless the page was deleted (which shouldn't happen in ingest)
+
+  # ===== PHASE 6: LOG =====
+  - id: log
+    type: manual
+    task: |
+      ## Logging Phase
+
+      Record the ingestion in `~/.pi/llm-wiki/log.md`:
+
+      ```
+      ## <date> — <N> sessions ingested
+
+      | Session | Project | Pages created | Pages updated | Status |
+      |---------|---------|--------------|---------------|--------|
+      | <slug>  | <name>  | <count>      | <count>       | OK     |
+      ```
+
+      Mark each session as:
+      - OK — fully ingested
+      - PARTIAL — ingested but some items flagged for review
+      - SKIPPED — validated but not ingested (with reason)
+
+      Also update `~/.pi/tasks/wiki-ingest-pending.md`:
+      - Remove ingested sessions from pending list
+      - Add any new sessions discovered during validation
+
+  # ===== PHASE 7: AUDIT (optional gate) =====
+  - id: audit
+    type: manual
+    task: |
+      ## Final Audit Gate
+
+      Run a lightweight audit on the affected pages:
+
+      1. **Link integrity** — every `](*.md)` link resolves to an existing file
+      2. **Frontmatter validity** — every new/updated page has required fields
+      3. **Bidirectional links** — if A links to B, B should reference A
+      4. **Source citations** — spot-check 3 random claims for verifiable citations
+      5. **No orphan pages** — every new page is reachable from index.md
+
+      If audit passes: report "ingestion complete" with summary.
+      If audit fails: list specific failures, hold the ingestion, flag for human review.
+
+      **Final output:** ingestion report with:
+      - Sessions processed
+      - Pages created/updated
+      - Items flagged for review
+      - Audit result
+      - Next actions (if any)

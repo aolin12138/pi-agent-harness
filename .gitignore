@@ -1,0 +1,31 @@
+# Personal / sensitive — never commit
+auth.json
+mcp-cache.json
+mcp-onboarding.json
+trust.json
+run-history.jsonl
+models.json
+
+# User data
+user/PROFILE.md
+user/memory/
+
+# Runtime state
+runs/
+sessions/
+
+# Node
+node_modules/
+npm/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Allow the template files
+!user/PROFILE.template.md
+!agent/settings.template.json
