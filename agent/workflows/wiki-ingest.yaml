@@ -145,6 +145,40 @@ nodes:
       - Keep sections organized — alphabetical within each category
       - Don't remove existing entries unless the page was deleted (which shouldn't happen in ingest)
 
+  # ===== PHASE 5.5: USER MODEL =====
+  - id: user-model
+    type: manual
+    task: |
+      ## User-Model & Self-Improvement Phase
+
+      Load the wiki-maintenance skill and run its user-model extraction
+      (§1.1), the session-to-skill scan (§4), and self-improvement
+      signals (§5) for every ingested session. This is the step that keeps
+      THIS device's profile/memory diverging based on how it is actually used.
+
+      **Evidence order — journal first, then session JSONL:**
+      1. If the session has a run journal
+         (`~/.pi/runs/<date>-<slug>/journal.md`), read it FIRST. It is the
+         distilled record — corrections, the "2 user contradictions →
+         re-align" events, and the Lessons section are already surfaced
+         there, so it is higher-signal than raw JSONL.
+      2. Then scan the session JSONL for signals the journal missed.
+
+      **What may be written automatically (per wiki-maintenance §1.1):**
+      - `~/.pi/user/memory/preferences.md` — preferences (confidence-tagged)
+      - `~/.pi/user/memory/corrections.md` — repeated corrections (≥2)
+      - `~/.pi/user/memory/sessions/YYYY-MM-DD.md` — one-paragraph summary
+      - `~/.pi/user/memory/MEMORY.md` — index entry (prune to <200 lines)
+
+      **PROFILE.md is propose-and-approve ONLY.** Never edit
+      `~/.pi/user/PROFILE.md` directly. When a signal rises to a standing
+      instruction, surface it as a candidate (per §1.1 / §4 format) and
+      wait for the user's yes/no. The memory files above may be written
+      automatically; PROFILE.md and AGENTS.md/skill changes may not.
+
+      Output: list of memory files written, plus any PROFILE.md,
+      AGENTS.md, or skill candidates surfaced for approval.
+
   # ===== PHASE 6: LOG =====
   - id: log
     type: manual

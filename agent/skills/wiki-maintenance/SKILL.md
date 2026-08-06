@@ -84,9 +84,17 @@ LLM-generated sessions).
 
 ### 1.1 User model extraction
 
-After each session, check for signals worth storing in the user model
-at `~/.pi/user/memory/`. This is what the agent learns about THIS user —
-not generic patterns.
+After each session, check for signals worth storing in the user model at
+`~/.pi/user/memory/`. This is what the agent learns about THIS user — not
+generic patterns. Invoked by the `wiki-ingest` workflow's user-model phase,
+or on demand.
+
+**Evidence order — journal first, then session JSONL.** If the task has a
+run journal (`~/.pi/runs/<date>-<slug>/journal.md`), read it FIRST: it is
+the distilled record — corrections, the "2 user contradictions → re-align"
+events, and the Lessons section are already surfaced there, so it is
+higher-signal than raw JSONL. Then scan the session JSONL for anything the
+journal missed.
 
 **What to extract:**
 
@@ -102,7 +110,10 @@ not generic patterns.
 - Only extract when observed in ≥2 sessions (or user explicitly confirms)
 - Mark confidence: explicit (user said it) > correction-driven (user corrected twice) > implied (observed 3+ times)
 - Never extract sensitive data without explicit user confirmation
-- Propose PROFILE.md additions — don't modify the user's profile without asking
+- Memory files (`preferences.md`, `corrections.md`, `sessions/`, `MEMORY.md`)
+  may be written automatically once the confidence threshold is met.
+- **PROFILE.md is propose-and-approve ONLY** — surface the candidate and
+  wait for the user's yes/no. Never modify the user's profile without asking.
 
 ### 1.2 Updating MEMORY.md index
 
